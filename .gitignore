@@ -1,0 +1,19 @@
+node_modules
+.next
+.env
+.env.local
+storage/
+coverage
+test-results
+playwright-report
+*.log
+.e2e-mfa-secret
+tsconfig.tsbuildinfo
+# personal data / local-only helpers
+scripts/import-*.js
+*.edited-backup.js
+.env.*
+!.env.example
+desktop.ini
+Thumbs.db
+

@@ -1,0 +1,11 @@
+# NVIDIA GPU for the bundled Ollama container. Requires nvidia-container-toolkit on the host.
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml --profile bundled-ollama up -d --build
+services:
+  ollama:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
