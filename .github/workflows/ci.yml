@@ -53,7 +53,7 @@ jobs:
       - run: npx next build
       - name: Start mock Ollama
         run: |
-          nohup node tests/mocks/mock-ollama.mjs > mock-ollama.log 2>&1 &
+          sudo nohup node tests/mocks/mock-ollama.mjs > mock-ollama.log 2>&1 &
           for i in $(seq 1 30); do
             curl -s -o /dev/null http://127.0.0.1:11434/ && exit 0
             sleep 1
