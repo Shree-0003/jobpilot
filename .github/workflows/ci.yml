@@ -37,6 +37,8 @@ jobs:
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+      - name: Make scripts executable
+        run: chmod +x scripts/*.sh
       - name: Configure test environment
         run: |
           cat > .env.local <<ENV
@@ -53,7 +55,7 @@ jobs:
       - run: npx next build
       - name: Start mock Ollama
         run: |
-          sudo nohup node tests/mocks/mock-ollama.mjs > mock-ollama.log 2>&1 &
+          nohup node tests/mocks/mock-ollama.mjs > mock-ollama.log 2>&1 &
           for i in $(seq 1 30); do
             curl -s -o /dev/null http://127.0.0.1:11434/ && exit 0
             sleep 1
@@ -85,7 +87,8 @@ jobs:
       - name: Validate compose (host and bundled Ollama, GPU override)
         run: |
           cp .env.example .env
-          sed -i 's/^MASTER_KEY=$/MASTER_KEY=dGVzdA==/; s/^MONGO_PASSWORD=$/MONGO_PASSWORD=ci/' .env
+          KEY=$(openssl rand -base64 32)
+          sed -i "s|^MASTER_KEY=.*|MASTER_KEY=${KEY}|; s|^MONGO_PASSWORD=.*|MONGO_PASSWORD=ci|" .env
           docker compose config -q
           COMPOSE_PROFILES=bundled-ollama docker compose config --services | grep -q ollama
           docker compose -f docker-compose.yml -f docker-compose.gpu.yml config -q
@@ -94,12 +97,13 @@ jobs:
           sed -i 's/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=bundled-ollama/; s|^OLLAMA_URL=.*|OLLAMA_URL=http://ollama:11434|' .env
           docker compose up -d app mongo ollama
           for i in $(seq 1 60); do
-            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/auth/me || true)
+            code=$(curl -s -o /tmp/body.txt -w '%{http_code}' http://127.0.0.1:3000/api/auth/me || true)
             echo "attempt $i: HTTP $code"
             # 200 or 401 both mean the app is up; 000/5xx mean it is not
             if [ "$code" = "200" ] || [ "$code" = "401" ]; then exit 0; fi
             sleep 3
           done
+          echo "---- last response body ----"; cat /tmp/body.txt || true
           echo "---- app logs ----"
-          docker compose logs --tail 120 app
+          docker compose logs --tail 150 app
           exit 1
